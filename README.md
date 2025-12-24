@@ -1,0 +1,65 @@
+# Car Rental Backend API
+
+FastAPI backend for a car rental platform with server-side validation and multi-step car listing workflow.
+
+## Setup
+
+1. Create a virtual environment:
+```bash
+python -m venv venv
+```
+
+2. Activate the virtual environment:
+```bash
+# Windows
+venv\Scripts\activate
+
+# Linux/Mac
+source venv/bin/activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Run the application:
+```bash
+uvicorn app.main:app --reload
+```
+
+The API will be available at `http://localhost:8000`
+- API Documentation (Swagger): `http://localhost:8000/docs`
+- Alternative docs (ReDoc): `http://localhost:8000/redoc`
+
+## Database
+
+The application uses SQLite by default. The database file (`car_rental.db`) will be created automatically on first run.
+
+## API Endpoints
+
+### Host Authentication
+- `POST /api/v1/host/auth/register` - Register a new host
+- `POST /api/v1/host/auth/login` - Login for hosts
+- `POST /api/v1/host/auth/logout` - Logout for hosts
+- `GET /api/v1/host/me` - Get current authenticated host information
+
+### Client Authentication
+- `POST /api/v1/client/auth/register` - Register a new client
+- `POST /api/v1/client/auth/login` - Login for clients
+- `POST /api/v1/client/auth/logout` - Logout for clients
+- `GET /api/v1/client/me` - Get current authenticated client information
+
+### Car Management (Host only, requires authentication)
+- `POST /api/v1/cars/basics` - Step 1: Create car with basic information
+- `PUT /api/v1/cars/{car_id}/specs` - Step 2: Update car technical specifications
+- `PUT /api/v1/cars/{car_id}/pricing` - Step 3: Update car pricing and rules
+- `PUT /api/v1/cars/{car_id}/location` - Step 4: Update car location and mark as complete
+- `GET /api/v1/cars/{car_id}` - Get car details by ID
+- `GET /api/v1/cars` - List all cars (with pagination)
+- `GET /api/v1/host/cars` - List all cars belonging to authenticated host
+
+## Development
+
+See `guide.md` for the complete development checklist and project requirements.
+
