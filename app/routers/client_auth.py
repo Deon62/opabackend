@@ -8,7 +8,9 @@ from app.schemas import (
     ClientRegisterRequest,
     ClientRegisterResponse,
     ClientLoginRequest,
-    ClientLoginResponse
+    ClientLoginResponse,
+    ClientProfileUpdateRequest,
+    ClientProfileResponse
 )
 from app.auth import (
     get_password_hash,
@@ -111,13 +113,46 @@ async def logout_client(current_client: Client = Depends(get_current_client)):
     return {"message": "Successfully logged out"}
 
 
-@router.get("/client/me", response_model=ClientRegisterResponse)
+@router.get("/client/me", response_model=ClientProfileResponse)
 async def get_current_client_info(current_client: Client = Depends(get_current_client)):
     """
-    Get current authenticated client information
+    Get current authenticated client profile information
     
     Requires Bearer token authentication.
     """
+    return current_client
+
+
+@router.put("/client/profile", response_model=ClientProfileResponse)
+async def update_client_profile(
+    request: ClientProfileUpdateRequest,
+    current_client: Client = Depends(get_current_client),
+    db: Session = Depends(get_db)
+):
+    """
+    Update client profile information
+    
+    - **bio**: Client bio/description (optional, max 2000 characters)
+    - **fun_fact**: Fun fact about the client (optional, max 500 characters)
+    - **mobile_number**: Mobile phone number (optional, max 50 characters)
+    - **id_number**: Driver's licence, passport, or ID number (optional, max 100 characters)
+    
+    Updates the authenticated client's profile. All fields are optional.
+    Only provided fields will be updated.
+    """
+    # Update only provided fields
+    if request.bio is not None:
+        current_client.bio = request.bio
+    if request.fun_fact is not None:
+        current_client.fun_fact = request.fun_fact
+    if request.mobile_number is not None:
+        current_client.mobile_number = request.mobile_number
+    if request.id_number is not None:
+        current_client.id_number = request.id_number
+    
+    db.commit()
+    db.refresh(current_client)
+    
     return current_client
 
 

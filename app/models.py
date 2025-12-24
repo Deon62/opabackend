@@ -27,6 +27,13 @@ class Client(Base):
     full_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    
+    # Profile fields
+    bio = Column(Text, nullable=True)
+    fun_fact = Column(Text, nullable=True)
+    mobile_number = Column(String(50), nullable=True)
+    id_number = Column(String(100), nullable=True)  # Driver's licence/passport number
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

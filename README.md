@@ -48,7 +48,8 @@ The application uses SQLite by default. The database file (`car_rental.db`) will
 - `POST /api/v1/client/auth/register` - Register a new client
 - `POST /api/v1/client/auth/login` - Login for clients
 - `POST /api/v1/client/auth/logout` - Logout for clients
-- `GET /api/v1/client/me` - Get current authenticated client information
+- `GET /api/v1/client/me` - Get current authenticated client profile
+- `PUT /api/v1/client/profile` - Update client profile (bio, fun_fact, mobile_number, id_number)
 
 ### Car Management (Host only, requires authentication)
 - `POST /api/v1/cars/basics` - Step 1: Create car with basic information

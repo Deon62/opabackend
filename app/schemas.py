@@ -67,6 +67,30 @@ class ClientRegisterResponse(BaseModel):
         from_attributes = True
 
 
+class ClientProfileUpdateRequest(BaseModel):
+    """Update client profile fields"""
+    bio: Optional[str] = Field(None, max_length=2000)
+    fun_fact: Optional[str] = Field(None, max_length=500)
+    mobile_number: Optional[str] = Field(None, max_length=50)
+    id_number: Optional[str] = Field(None, max_length=100, description="Driver's licence, passport, or ID number")
+
+
+class ClientProfileResponse(BaseModel):
+    """Complete client profile response"""
+    id: int
+    full_name: str
+    email: str
+    bio: Optional[str] = None
+    fun_fact: Optional[str] = None
+    mobile_number: Optional[str] = None
+    id_number: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ClientLoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -75,7 +99,7 @@ class ClientLoginRequest(BaseModel):
 class ClientLoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    client: ClientRegisterResponse
+    client: ClientProfileResponse
 
 
 # Car Upload Schemas
