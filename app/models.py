@@ -1,7 +1,45 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Text, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+import enum
+
+
+class PaymentMethodType(str, enum.Enum):
+    """Payment method types"""
+    MPESA = "mpesa"
+    VISA = "visa"
+    MASTERCARD = "mastercard"
+
+
+class PaymentMethod(Base):
+    """Payment methods for hosts"""
+    __tablename__ = "payment_methods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    host_id = Column(Integer, ForeignKey("hosts.id"), nullable=False, index=True)
+    
+    # Payment method type
+    method_type = Column(SQLEnum(PaymentMethodType), nullable=False)
+    
+    # For M-Pesa
+    mpesa_number = Column(String(20), nullable=True)  # e.g., "254712345678"
+    
+    # For cards (Visa/Mastercard)
+    card_number_hash = Column(String(255), nullable=True)  # Hashed card number
+    card_last_four = Column(String(4), nullable=True)  # Last 4 digits for display
+    card_type = Column(String(20), nullable=True)  # "visa" or "mastercard"
+    expiry_month = Column(Integer, nullable=True)  # 1-12
+    expiry_year = Column(Integer, nullable=True)  # YYYY
+    cvc_hash = Column(String(255), nullable=True)  # Hashed CVC/CVV
+    
+    # Metadata
+    is_default = Column(Boolean, default=False)  # Default payment method
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationship to host
+    host = relationship("Host", back_populates="payment_methods")
 
 
 class Host(Base):
@@ -12,11 +50,19 @@ class Host(Base):
     full_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    
+    # Profile fields
+    bio = Column(Text, nullable=True)
+    mobile_number = Column(String(50), nullable=True)
+    id_number = Column(String(100), nullable=True)  # ID number, passport number, or DL number
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationship to cars
     cars = relationship("Car", back_populates="host")
+    # Relationship to payment methods
+    payment_methods = relationship("PaymentMethod", back_populates="host", cascade="all, delete-orphan")
 
 
 class Client(Base):

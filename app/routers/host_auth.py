@@ -8,7 +8,9 @@ from app.schemas import (
     HostRegisterRequest,
     HostRegisterResponse,
     HostLoginRequest,
-    HostLoginResponse
+    HostLoginResponse,
+    HostProfileUpdateRequest,
+    HostProfileResponse
 )
 from app.auth import (
     get_password_hash,
@@ -111,13 +113,43 @@ async def logout_host(current_host: Host = Depends(get_current_host)):
     return {"message": "Successfully logged out"}
 
 
-@router.get("/host/me", response_model=HostRegisterResponse)
+@router.get("/host/me", response_model=HostProfileResponse)
 async def get_current_host_info(current_host: Host = Depends(get_current_host)):
     """
     Get current authenticated host information
     
     Requires Bearer token authentication.
     """
+    return current_host
+
+
+@router.put("/host/profile", response_model=HostProfileResponse)
+async def update_host_profile(
+    request: HostProfileUpdateRequest,
+    current_host: Host = Depends(get_current_host),
+    db: Session = Depends(get_db)
+):
+    """
+    Update host profile information
+    
+    - **bio**: Host bio/description (optional, max 2000 characters)
+    - **mobile_number**: Mobile phone number (optional, max 50 characters)
+    - **id_number**: ID number, passport number, or driver's license number (optional, max 100 characters)
+    
+    Updates the authenticated host's profile. All fields are optional.
+    Only provided fields will be updated.
+    """
+    # Update only provided fields
+    if request.bio is not None:
+        current_host.bio = request.bio
+    if request.mobile_number is not None:
+        current_host.mobile_number = request.mobile_number
+    if request.id_number is not None:
+        current_host.id_number = request.id_number
+    
+    db.commit()
+    db.refresh(current_host)
+    
     return current_host
 
 

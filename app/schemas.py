@@ -1,7 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field, model_validator
-from typing import Optional, List
-from datetime import datetime
+from pydantic import BaseModel, EmailStr, Field, model_validator, field_validator
+from typing import Optional, List, Literal
+from datetime import datetime, date
 import json
+import re
+from enum import Enum
 
 
 # Host Auth Schemas
@@ -28,6 +30,28 @@ class HostRegisterResponse(BaseModel):
         from_attributes = True
 
 
+class HostProfileUpdateRequest(BaseModel):
+    """Update host profile fields"""
+    bio: Optional[str] = Field(None, max_length=2000)
+    mobile_number: Optional[str] = Field(None, max_length=50)
+    id_number: Optional[str] = Field(None, max_length=100, description="ID number, passport number, or driver's license number")
+
+
+class HostProfileResponse(BaseModel):
+    """Complete host profile response"""
+    id: int
+    full_name: str
+    email: str
+    bio: Optional[str] = None
+    mobile_number: Optional[str] = None
+    id_number: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class HostLoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -36,7 +60,7 @@ class HostLoginRequest(BaseModel):
 class HostLoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    host: HostRegisterResponse
+    host: HostProfileResponse
 
 
 class TokenData(BaseModel):
@@ -191,6 +215,103 @@ class CarResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+    class Config:
+        from_attributes = True
+
+
+# Payment Method Schemas
+class PaymentMethodTypeEnum(str, Enum):
+    """Payment method types"""
+    MPESA = "mpesa"
+    VISA = "visa"
+    MASTERCARD = "mastercard"
+
+
+class MpesaPaymentMethodAddRequest(BaseModel):
+    """Add M-Pesa payment method request schema"""
+    mpesa_number: str = Field(..., max_length=20, description="M-Pesa phone number (e.g., 254712345678)")
+    is_default: Optional[bool] = Field(False, description="Set as default payment method")
+    
+    @model_validator(mode='after')
+    def validate_mpesa_number(self):
+        """Validate M-Pesa number"""
+        if not self.mpesa_number:
+            raise ValueError('M-Pesa number is required')
+        # Remove any spaces or dashes
+        mpesa_clean = re.sub(r'[\s-]', '', self.mpesa_number)
+        # Validate format (should start with country code like 254 for Kenya)
+        if not re.match(r'^\d{9,15}$', mpesa_clean):
+            raise ValueError('M-Pesa number must be 9-15 digits')
+        self.mpesa_number = mpesa_clean
+        return self
+
+
+class CardPaymentMethodAddRequest(BaseModel):
+    """Add card payment method request schema"""
+    card_number: str = Field(..., description="16-digit card number")
+    cvc: str = Field(..., description="3-4 digit CVC/CVV code")
+    expiry_month: int = Field(..., ge=1, le=12, description="Expiry month (1-12)")
+    expiry_year: int = Field(..., ge=2024, le=2099, description="Expiry year (YYYY)")
+    card_type: Literal["visa", "mastercard"] = Field(..., description="Card type (visa or mastercard)")
+    is_default: Optional[bool] = Field(False, description="Set as default payment method")
+    
+    @model_validator(mode='after')
+    def validate_card_data(self):
+        """Validate card data"""
+        # Validate card number format (16 digits, no spaces)
+        card_clean = re.sub(r'[\s-]', '', self.card_number)
+        if not re.match(r'^\d{16}$', card_clean):
+            raise ValueError('Card number must be exactly 16 digits')
+        
+        # Validate card type matches first digit
+        first_digit = card_clean[0]
+        if self.card_type == "visa" and first_digit != '4':
+            raise ValueError('Visa cards must start with 4')
+        if self.card_type == "mastercard" and first_digit != '5':
+            raise ValueError('Mastercard cards must start with 5')
+        
+        # Validate CVC/CVV (3-4 digits)
+        cvc_clean = re.sub(r'[\s]', '', self.cvc)
+        if not re.match(r'^\d{3,4}$', cvc_clean):
+            raise ValueError('CVC/CVV must be 3 or 4 digits')
+        
+        # Validate expiry date is not in the past
+        today = date.today()
+        current_year = today.year
+        current_month = today.month
+        # Card is expired if expiry year is before current year, or same year but expiry month is before current month
+        if self.expiry_year < current_year or (self.expiry_year == current_year and self.expiry_month < current_month):
+            raise ValueError('Card expiry date cannot be in the past')
+        
+        # Store cleaned values
+        self.card_number = card_clean
+        self.cvc = cvc_clean
+        
+        return self
+
+
+class PaymentMethodResponse(BaseModel):
+    """Payment method response schema"""
+    id: int
+    host_id: int
+    method_type: str  # Will be automatically converted from PaymentMethodType enum
+    mpesa_number: Optional[str] = None
+    card_last_four: Optional[str] = None
+    card_type: Optional[str] = None
+    expiry_month: Optional[int] = None
+    expiry_year: Optional[int] = None
+    is_default: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PaymentMethodListResponse(BaseModel):
+    """List of payment methods response"""
+    payment_methods: List[PaymentMethodResponse]
+    
     class Config:
         from_attributes = True
 
